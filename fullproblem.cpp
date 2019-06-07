@@ -44,15 +44,16 @@ void init_prob(struct Fullproblem *prob, int n, int p, denseData *ds)
     for (int j = 0; j < prob->p; j++) {
       prob->partialH[i][j] = 0.0;
       for (int k = 0; k < ds->nFeatures; k++) {
-        prob->partialH[i][j]+=ds->data[i+p][k]*ds->data[j][k];
+        prob->partialH[i][j]+=ds->data[prob->inactive[i]][k]*ds->data[prob->active[j]][k];
       }
+      prob->partialH[i][j]*=ds->y[prob->inactive[i]]*ds->y[prob->active[j]];
     }
   }
 }
 
 void updateAlphaR(struct Fullproblem *fp, struct Projected *sp)
 {
-  
+
   for (int i = 0; i < sp->p; i++) {
     sp->rho[i] = sp->alphaHat[i];
     for (int j = 0; j < sp->p; j++) {

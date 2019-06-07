@@ -39,8 +39,9 @@ void init_subprob(struct Projected *sp, struct Fullproblem *fp, struct denseData
     for (int j = i; j < sp->p; j++) {
       sp->H[i][j] = 0.0;
       for (int k = 0; k < ds->nFeatures; k++) {
-        sp->H[i][j] += ds->data[i][k]*ds->data[j][k];
+        sp->H[i][j] += ds->data[fp->active[i]][k]*ds->data[fp->active[j]][k];
       }
+      sp->H[i][j]*=ds->y[fp->active[i]]*ds->y[fp->active[j]];
     }
   }
 
@@ -62,27 +63,42 @@ void cg(struct Projected *sp)
   init_error(sp);
   double rSq = inner_prod(sp->gamma,sp->gamma,sp->p);
   double newRSQ;
-  while (rSq > 0.00001) {
-    std::cout << "ok1" << '\n';
+  int i=0;
+  for (int i = 0; i < sp->p; i++) {
+    std::cout << "rho is " << sp->rho[i] << '\n';
+  }
+  for (int i = 0; i < sp->p; i++) {
+    std::cout << "gamma is " << sp->gamma[i] << '\n';
+  }
+  while (rSq > 0.001) {
     calc_Hrho(sp);
-    std::cout << "ok2" << '\n';
-
+    for (int i = 0; i < sp->p; i++) {
+      std::cout << "rho is " << sp->rho[i] << '\n';
+    }
+    std::cout << '\n';
+    for (int i = 0; i < sp->p; i++) {
+      std::cout << "Hrho is " << sp->Hrho[i] << '\n';
+    }
+    std::cout << '\n';
+    for (int i = 0; i < sp->p; i++) {
+      std::cout << "Gamma is " << sp->gamma[i] << '\n';
+    }
     lambda = rSq/inner_prod(sp->Hrho, sp->rho, sp->p);
-    std::cout << "o32" << '\n';
 
     linearOp(sp->alphaHat, sp->rho, lambda, sp->p);
-    std::cout << "ok4" << '\n';
     updateGamma(sp, lambda);
-    std::cout << "ok5" << '\n';
 
     newRSQ = inner_prod(sp->gamma, sp->gamma, sp->p);
-    std::cout << "ok6" << '\n';
 
     mu = rSq/newRSQ;
     linearOp2(sp->rho, sp->gamma, mu, sp->p);
-    std::cout << "ok7" << '\n';
 
-    break;
+    rSq = newRSQ;
+    std::cout << "Here it is " << rSq << '\n';
+    i++;
+    if (i>5) {
+      break;
+    }
   }
 }
 
@@ -107,7 +123,7 @@ void updateGamma(struct Projected *sp, double lambda)
   for (int i = 0; i < sp->p; i++) {
     sp->gamma[i] -= lambda*sp->Hrho[i];
     for (int j = 0; j < sp->p; j++) {
-      sp->gamma[i] -= sp->yHat[i]*sp->yHat[j]*sp->Hrho[j];
+      sp->gamma[i] += (sp->yHat[i]*sp->yHat[j]*sp->Hrho[j]/(double)sp->p);
     }
   }
 }
@@ -124,9 +140,14 @@ void calc_Hrho(struct Projected *sp)
   for (int i = 0; i < sp->p; i++) {
     sp->Hrho[i] = 0.0;
     for (int j = 0; j < i; j++) {
+      std::cout << sp->H[j][i] << " * " << sp->rho[j] << '\n';
       sp->Hrho[i]+= sp->H[j][i]*sp->rho[j];
+      std::cout << i << j << '\n';
     }
     for (int j = i; j < sp->p; j++) {
+      std::cout << sp->H[i][j] << " * " << sp->rho[j] << '\n';
+
+      std::cout << i << j << '\n';
       sp->Hrho[i]+= sp->H[i][j]*sp->rho[j];
     }
   }

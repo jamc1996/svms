@@ -5,6 +5,10 @@
 
 #include <iostream>
 
+void freeDenseData(struct denseData *ds);
+void  freeFullProblem(struct Fullproblem *fp);
+void   freeSubProblem( struct Projected* subP);
+
 int main(int argc, char *argv[]) {
   char* filename = NULL;
   struct svm_args parameters;
@@ -24,14 +28,26 @@ int main(int argc, char *argv[]) {
   }
 
   int p = 8;
+
   alloc_prob(&fullP, ds.nInstances, p);
-
   init_prob(&fullP, ds.nInstances, p, &ds);
-  std::cout << "ok" << '\n';
 
+  for (int i = 0; i < fullP.q; i++) {
+    for (int j = 0; j < fullP.p; j++) {
+      std::cout << fullP.partialH[i][j] << '\t';
+    }
+    std::cout << '\n';
+  }
 
   alloc_subprob(&subP, p, &fullP, &ds);
   init_subprob(&subP, &fullP, &ds);
+
+  for (int i = 0; i < p; i++) {
+    for (int j = i; j < p; j++) {
+      std::cout << subP.H[i][j] << '\t';
+    }
+    std::cout << '\n';
+  }
 
   cg(&subP);
   for (int i = 0; i < p; i++) {
@@ -39,7 +55,7 @@ int main(int argc, char *argv[]) {
   }
 
 
-  updateAlphaR(&fullP, &subP);
+  //updateAlphaR(&fullP, &subP);
 
 
   for (int i = 0; i < p; i++) {
@@ -49,7 +65,45 @@ int main(int argc, char *argv[]) {
     std::cout << '\n';
   }
 
-
+  freeDenseData(&ds);
+  freeFullProblem(&fullP);
+  freeSubProblem(&subP);
 
   return 0;
+}
+
+void   freeSubProblem( struct Projected* subP)
+{
+  free(subP->alphaHat);
+  free(subP->yHat);
+  free(subP->rHat);
+  free(subP->H);
+
+  free(subP->gamma);
+  free(subP->rho);
+  free(subP->Hrho);
+
+  free(subP->h);
+}
+
+void freeDenseData(struct denseData *ds)
+{
+  free(ds->data);
+  free(ds->data1d);
+  free(ds->y);
+  free(ds->instanceLabels);
+  free(ds->featureLabels);
+}
+
+void  freeFullProblem(struct Fullproblem *fp)
+{
+  free(fp->alpha);
+  free(fp->beta);
+  free(fp->gradF);
+
+  free(fp->active);
+  free(fp->inactive);
+
+  free(fp->partialH);
+  free(fp->h);
 }
