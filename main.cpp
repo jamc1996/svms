@@ -53,10 +53,19 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < p; i++) {
     std::cout << subP.alphaHat[i] << '\n';
   }
+  calcYTR(&subP);
 
 
-  //updateAlphaR(&fullP, &subP);
+  updateAlphaR(&fullP, &subP);
+  calculateBeta(&fullP, &subP, &ds);
 
+
+  for (int i = 0; i < fullP.q; i++) {
+    std::cout << "beta is " << fullP.beta[i] << '\n';
+  }
+  for (int i = 0; i < fullP.n; i++) {
+    //std::cout << "gradF is " << fullP.gradF[i] << '\n';
+  }
 
   for (int i = 0; i < p; i++) {
     for (int j = i; j < p; j++) {
@@ -64,6 +73,9 @@ int main(int argc, char *argv[]) {
     }
     std::cout << '\n';
   }
+
+  swapMostNegative(&fullP);
+
 
   freeDenseData(&ds);
   freeFullProblem(&fullP);

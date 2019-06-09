@@ -4,6 +4,7 @@
 void alloc_subprob(struct Projected *sp, int p, struct Fullproblem *fp, struct denseData *ds)
 {
   sp->p = p;
+  sp->C = 1.0;
 
   sp->alphaHat = (double*)malloc(sizeof(double)*p);
   sp->yHat = (double*)malloc(sizeof(double)*p);
@@ -13,7 +14,6 @@ void alloc_subprob(struct Projected *sp, int p, struct Fullproblem *fp, struct d
   sp->rho = (double*)malloc(sizeof(double)*p);
   sp->Hrho = (double*)malloc(sizeof(double)*p);
 
-  std::cout << "Inint" << '\n';
   //init_symmetric(sp,p);
 
   sp->H = (double**)malloc(sizeof(double*)*p);
@@ -62,16 +62,16 @@ void cg(struct Projected *sp)
   double lambda, mu;
   init_error(sp);
   double rSq = inner_prod(sp->gamma,sp->gamma,sp->p);
+
   double newRSQ;
   int i=0;
-  for (int i = 0; i < sp->p; i++) {
-    std::cout << "rho is " << sp->rho[i] << '\n';
-  }
-  for (int i = 0; i < sp->p; i++) {
-    std::cout << "gamma is " << sp->gamma[i] << '\n';
-  }
+  int flag = 1;
   while (rSq > 0.001) {
     calc_Hrho(sp);
+    for (int i = 0; i < sp->p; i++) {
+      std::cout << "alpha is " << sp->alphaHat[i] << '\n';
+    }
+
     for (int i = 0; i < sp->p; i++) {
       std::cout << "rho is " << sp->rho[i] << '\n';
     }
@@ -83,23 +83,37 @@ void cg(struct Projected *sp)
     for (int i = 0; i < sp->p; i++) {
       std::cout << "Gamma is " << sp->gamma[i] << '\n';
     }
+
+
     lambda = rSq/inner_prod(sp->Hrho, sp->rho, sp->p);
 
     linearOp(sp->alphaHat, sp->rho, lambda, sp->p);
+
     updateGamma(sp, lambda);
 
     newRSQ = inner_prod(sp->gamma, sp->gamma, sp->p);
 
-    mu = rSq/newRSQ;
+    mu = newRSQ/rSq;
     linearOp2(sp->rho, sp->gamma, mu, sp->p);
 
     rSq = newRSQ;
     std::cout << "Here it is " << rSq << '\n';
     i++;
-    if (i>5) {
+    for (int j = 0; j < sp->p; j++) {
+      if (sp->alphaHat[j] > sp->C ) {
+        flag = 1;
+        sp->alphaHat[j] = sp->C;
+      }
+      if (sp->alphaHat[j] < 0.0) {
+        flag = 1;
+        sp->alphaHat[j] = 0;
+      }
+    }
+    if (flag == 1) {
       break;
     }
   }
+  std::cout << rSq << '\n';
 }
 
 void linearOp2(double* rho, double* gamma, double mu, int p)
@@ -118,15 +132,7 @@ void calcYTR(struct Projected *sp)
   }
 }
 
-void updateGamma(struct Projected *sp, double lambda)
-{
-  for (int i = 0; i < sp->p; i++) {
-    sp->gamma[i] -= lambda*sp->Hrho[i];
-    for (int j = 0; j < sp->p; j++) {
-      sp->gamma[i] += (sp->yHat[i]*sp->yHat[j]*sp->Hrho[j]/(double)sp->p);
-    }
-  }
-}
+
 
 void linearOp(double* alpha, double* rho, double lambda, int p)
 {
@@ -140,14 +146,9 @@ void calc_Hrho(struct Projected *sp)
   for (int i = 0; i < sp->p; i++) {
     sp->Hrho[i] = 0.0;
     for (int j = 0; j < i; j++) {
-      std::cout << sp->H[j][i] << " * " << sp->rho[j] << '\n';
       sp->Hrho[i]+= sp->H[j][i]*sp->rho[j];
-      std::cout << i << j << '\n';
     }
     for (int j = i; j < sp->p; j++) {
-      std::cout << sp->H[i][j] << " * " << sp->rho[j] << '\n';
-
-      std::cout << i << j << '\n';
       sp->Hrho[i]+= sp->H[i][j]*sp->rho[j];
     }
   }
@@ -163,6 +164,18 @@ void copy_vector(double* a, double* b, int p)
 {
   for (int i = 0; i < p; i++) {
     a[i] = b[i];
+  }
+}
+void updateGamma(struct Projected *sp, double lambda)
+{
+  for (int i = 0; i < sp->p; i++) {
+    sp->Hrho[i]*=lambda;
+  }
+  for (int i = 0; i < sp->p; i++) {
+    sp->gamma[i] -= sp->Hrho[i];
+    for (int j = 0; j < sp->p; j++) {
+      sp->gamma[i] += sp->yHat[i]*sp->yHat[j]*sp->Hrho[j]/((double)sp->p);
+    }
   }
 }
 

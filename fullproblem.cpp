@@ -37,7 +37,7 @@ void init_prob(struct Fullproblem *prob, int n, int p, denseData *ds)
     prob->active[i] = i;
   }
   for (int i = p; i < n; i++) {
-    prob->inactive[i] = i;
+    prob->inactive[i-p] = i;
   }
 
   for (int i = 0; i < prob->q; i++) {
@@ -65,16 +65,53 @@ void updateAlphaR(struct Fullproblem *fp, struct Projected *sp)
     fp->alpha[fp->active[i]] += sp->rho[i];
   }
 
-  for (int i = 0; i < fp->n; i++) {
+  for (int i = 0; i < fp-> q; i++) {
     for (int j = 0; j < sp->p; j++) {
-      fp->gradF[i] -= fp->partialH[i][j] * sp->rho[j];
+      std::cout << fp->inactive[i] << '\n';
+      fp->gradF[fp->inactive[i]] -= fp->partialH[i][j] * sp->rho[j];
     }
   }
+
 }
 
-void calculateBeta(struct Fullproblem *fp, struct Projected *sp)
+void swapMostNegative(struct Fullproblem *fp)
+{
+  int* temp = (int*)malloc(sizeof(int)*fp->p);
+  int* temp2 = (int*)malloc(sizeof(int)*fp->p);
+  double* tempD = (double*)malloc(sizeof(double)*fp->p);
+  for (int i = 0; i < fp->p; i++) {
+    temp[i] = -1;
+    tempD[i] = 100.0;
+  }
+  for (int i = 0; i < fp->q; i++) {
+    for (int j = 0; j < fp->p; j++) {
+      if (fp->beta[i]<tempD[j]) {
+        for (int k = (fp->p) - 1; k > j ; k--) {
+          temp[k] = temp[k-1];
+          tempD[k] = tempD[k-1];
+        }
+        temp[j] = i;
+        tempD[j] = fp->beta[i];
+        break;
+      }
+    }
+  }
+
+  for (int i = 0; i < fp->p; i++) {
+    temp2[i] = fp->inactive[temp[i]];
+    fp->inactive[temp[i]] = fp->active[i];
+    fp->active[i] = temp2[i];
+  }
+
+  free(temp);
+  free(temp2);
+  free(tempD);
+}
+
+
+void calculateBeta(struct Fullproblem *fp, struct Projected *sp, struct denseData *ds)
 {
   for (int i = 0; i < fp->q; i++) {
-    fp->beta[i] -= sp->ytr;
+    fp->beta[i] = fp->gradF[fp->inactive[i]] - sp->ytr*ds->y[fp->inactive[i]];
   }
 }

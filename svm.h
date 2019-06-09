@@ -32,7 +32,8 @@ struct Projected{
 	double* Hrho;
 
 	int p;
-
+	double C;
+	
 	double* h;
 
 
