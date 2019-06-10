@@ -16,67 +16,52 @@ int main(int argc, char *argv[]) {
   struct Fullproblem fullP;
   struct Projected subP;
 
+  // Input processed:
   parse_arguments(argc, argv, &filename, &parameters);
   read_file(filename, &ds);
   preprocess(&ds);
 
-  for (int i = 0; i < ds.nInstances; i++) {
-    for (int j = 0; j < ds.nFeatures; j++) {
-    //  std::cout << ds.data[i][j] << '\t';
-    }
-    //std::cout << ds.y[i] << '\n';
-  }
-
+  // Projected problem size chosen temporarily
   int p = 8;
 
+  // Full problem allocated and filled in:
   alloc_prob(&fullP, ds.nInstances, p);
   init_prob(&fullP, ds.nInstances, p, &ds);
 
-  for (int i = 0; i < fullP.q; i++) {
-    for (int j = 0; j < fullP.p; j++) {
-      std::cout << fullP.partialH[i][j] << '\t';
-    }
-    std::cout << '\n';
-  }
-
+  // Subproblem allocated:
   alloc_subprob(&subP, p, &fullP, &ds);
-  init_subprob(&subP, &fullP, &ds);
 
-  for (int i = 0; i < p; i++) {
-    for (int j = i; j < p; j++) {
-      std::cout << subP.H[i][j] << '\t';
+  // We loop until no negative entries in beta:
+  int k = 1;
+  int max_iters = 10;
+  int i = 0;
+  while(k){
+    init_subprob(&subP, &fullP, &ds);
+    cg(&subP);
+    calcYTR(&subP);
+    updateAlphaR(&fullP, &subP);
+    calculateBeta(&fullP, &subP, &ds);
+    std::cout << "chaning::::" << '\n';
+    for (int i = 0; i < fullP.p; i++) {
+      std::cout << fullP.active[i] << '\n';
+    }
+
+    swapMostNegative(&fullP);
+    updatePartialH(&fullP, &ds);
+    
+    for (int i = 0; i < fullP.n; i++) {
+      std::cout << "alpha =" << fullP.alpha[i] << '\n';
     }
     std::cout << '\n';
-  }
 
-  cg(&subP);
-  for (int i = 0; i < p; i++) {
-    std::cout << subP.alphaHat[i] << '\n';
-  }
-  calcYTR(&subP);
-
-
-  updateAlphaR(&fullP, &subP);
-  calculateBeta(&fullP, &subP, &ds);
-
-
-  for (int i = 0; i < fullP.q; i++) {
-    std::cout << "beta is " << fullP.beta[i] << '\n';
-  }
-  for (int i = 0; i < fullP.n; i++) {
-    //std::cout << "gradF is " << fullP.gradF[i] << '\n';
-  }
-
-  for (int i = 0; i < p; i++) {
-    for (int j = i; j < p; j++) {
-  //    std::cout << subP.H[i][j] << '\t';
+    i++;
+    if(i == max_iters){
+      break;
     }
-    std::cout << '\n';
+
   }
 
-  swapMostNegative(&fullP);
-
-
+  //Memory freed
   freeDenseData(&ds);
   freeFullProblem(&fullP);
   freeSubProblem(&subP);

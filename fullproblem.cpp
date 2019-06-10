@@ -51,6 +51,19 @@ void init_prob(struct Fullproblem *prob, int n, int p, denseData *ds)
   }
 }
 
+void updatePartialH(struct Fullproblem *prob, struct denseData *ds)
+{
+  for (int i = 0; i < prob->q; i++) {
+    for (int j = 0; j < prob->p; j++) {
+      prob->partialH[i][j] = 0.0;
+      for (int k = 0; k < ds->nFeatures; k++) {
+        prob->partialH[i][j]+=ds->data[prob->inactive[i]][k]*ds->data[prob->active[j]][k];
+      }
+      prob->partialH[i][j]*=ds->y[prob->inactive[i]]*ds->y[prob->active[j]];
+    }
+  }
+}
+
 void updateAlphaR(struct Fullproblem *fp, struct Projected *sp)
 {
 
@@ -67,14 +80,13 @@ void updateAlphaR(struct Fullproblem *fp, struct Projected *sp)
 
   for (int i = 0; i < fp-> q; i++) {
     for (int j = 0; j < sp->p; j++) {
-      std::cout << fp->inactive[i] << '\n';
       fp->gradF[fp->inactive[i]] -= fp->partialH[i][j] * sp->rho[j];
     }
   }
 
 }
 
-void swapMostNegative(struct Fullproblem *fp)
+int swapMostNegative(struct Fullproblem *fp)
 {
   int* temp = (int*)malloc(sizeof(int)*fp->p);
   int* temp2 = (int*)malloc(sizeof(int)*fp->p);
@@ -106,6 +118,10 @@ void swapMostNegative(struct Fullproblem *fp)
   free(temp);
   free(temp2);
   free(tempD);
+  if (fp->active[0]>=0) {
+    return 0;
+  }
+  return 1;
 }
 
 

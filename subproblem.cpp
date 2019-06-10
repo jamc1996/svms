@@ -69,19 +69,19 @@ void cg(struct Projected *sp)
   while (rSq > 0.001) {
     calc_Hrho(sp);
     for (int i = 0; i < sp->p; i++) {
-      std::cout << "alpha is " << sp->alphaHat[i] << '\n';
+  //    std::cout << "alpha is " << sp->alphaHat[i] << '\n';
     }
 
     for (int i = 0; i < sp->p; i++) {
-      std::cout << "rho is " << sp->rho[i] << '\n';
+  //    std::cout << "rho is " << sp->rho[i] << '\n';
     }
     std::cout << '\n';
     for (int i = 0; i < sp->p; i++) {
-      std::cout << "Hrho is " << sp->Hrho[i] << '\n';
+  //    std::cout << "Hrho is " << sp->Hrho[i] << '\n';
     }
     std::cout << '\n';
     for (int i = 0; i < sp->p; i++) {
-      std::cout << "Gamma is " << sp->gamma[i] << '\n';
+  //    std::cout << "Gamma is " << sp->gamma[i] << '\n';
     }
 
 
@@ -113,7 +113,6 @@ void cg(struct Projected *sp)
       break;
     }
   }
-  std::cout << rSq << '\n';
 }
 
 void linearOp2(double* rho, double* gamma, double mu, int p)
