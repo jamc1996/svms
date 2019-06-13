@@ -4,7 +4,7 @@
 void alloc_subprob(struct Projected *sp, int p, struct Fullproblem *fp, struct denseData *ds)
 {
   sp->p = p;
-  sp->C = 1.0;
+  sp->C = 10.0;
 
   sp->alphaHat = (double*)malloc(sizeof(double)*p);
   sp->yHat = (double*)malloc(sizeof(double)*p);
@@ -57,7 +57,7 @@ void init_symmetric(struct Projected *sp, int p)
 
 }
 
-void cg(struct Projected *sp)
+int cg(struct Projected *sp)
 {
   double lambda, mu;
   init_error(sp);
@@ -102,17 +102,20 @@ void cg(struct Projected *sp)
     for (int j = 0; j < sp->p; j++) {
       if (sp->alphaHat[j] > sp->C ) {
         flag = 1;
-        sp->alphaHat[j] = sp->C;
       }
       if (sp->alphaHat[j] < 0.0) {
         flag = 1;
-        sp->alphaHat[j] = 0;
       }
     }
     if (flag == 1) {
-      break;
+      return 1;
     }
   }
+
+  for (int i = 0; i < sp->p; i++) {
+    std::cout << "gamma is " << sp->gamma[i] << '\n';
+  }
+  return 0;
 }
 
 void linearOp2(double* rho, double* gamma, double mu, int p)

@@ -35,30 +35,38 @@ int main(int argc, char *argv[]) {
   int k = 1;
   int max_iters = 10;
   int i = 0;
+  int n = 0;
   while(k){
+    setH(&fullP, &ds);
+
     init_subprob(&subP, &fullP, &ds);
-    cg(&subP);
+    n = cg(&subP);
     calcYTR(&subP);
     updateAlphaR(&fullP, &subP);
     calculateBeta(&fullP, &subP, &ds);
-    std::cout << "chaning::::" << '\n';
-    for (int i = 0; i < fullP.p; i++) {
-      std::cout << fullP.active[i] << '\n';
+
+    if (n) {
+      k = partialSwap(&fullP,&subP);
+      for (int i = 0; i < subP.p; i++) {
+        std::cout << "activia " << fullP.active[i] << '\n';
+      }
+    }
+    else{
+      k = swapMostNegative(&fullP);
     }
 
-    swapMostNegative(&fullP);
-    updatePartialH(&fullP, &ds);
-    
     for (int i = 0; i < fullP.n; i++) {
-      std::cout << "alpha =" << fullP.alpha[i] << '\n';
+      //std::cout << "alpha  =   " << fullP.alpha[i] << '\n';
     }
-    std::cout << '\n';
+
+    for (int i = 0; i < fullP.q; i++) {
+      //std::cout << "beta  =   " << fullP.beta[i] << '\n';
+    }
 
     i++;
     if(i == max_iters){
       break;
     }
-
   }
 
   //Memory freed

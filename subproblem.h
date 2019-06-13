@@ -10,7 +10,7 @@ void alloc_subprob(struct Projected *sp, int p, struct Fullproblem *fp, struct d
 void init_subprob(struct Projected *sp, struct Fullproblem *fp, struct denseData *ds);
 void init_symmetric(struct Projected *sp, int p);
 
-void cg(struct Projected *sp);
+int cg(struct Projected *sp);
 
 void init_error(struct Projected* sp);
 void calc_Hrho(struct Projected *sp);

@@ -3,11 +3,15 @@
 void read_file(char* const filename, struct denseData* ds){
   FILE *fp = fopen(filename, "r");
   count_entries(fp, ds);
+  std::cout << "ds =  " << ds->nInstances << '\n';
+  std::cout << "ds =  " << ds->nFeatures << '\n';
+
   ds->data1d = (double*)malloc(sizeof(double)*ds->nInstances*ds->nFeatures);
   ds->data = (double**)malloc(sizeof(double*)*ds->nInstances);
   ds->instanceLabels = (char**)malloc(sizeof(char*)*ds->nInstances);
   ds->featureLabels = (char**)malloc(sizeof(char*)*ds->nFeatures);
   ds->y = (double*)malloc(sizeof(double)*ds->nInstances);
+  double* temp= (double*)malloc(sizeof(double)*ds->nFeatures);
 
   char* line = NULL;
   char* endptr;
@@ -17,17 +21,19 @@ void read_file(char* const filename, struct denseData* ds){
   //    std::cout << ds->featureLabels[i] << '\n';
     }
   }
-
-
   for (int i = 0; i < ds->nInstances; i++) {
     ds->data[i] = &ds->data1d[i*ds->nFeatures];
+  }
+  int r = 0;
+  int q = 0;
+  for (int i = 0; i < ds->nInstances; i++) {
     readline(fp,&line);
     ds->instanceLabels[i] = strtok(line, " \t");
     if (ds->instanceLabels[i] == NULL || *(ds->instanceLabels[i]) == '\n') {
       fprintf(stderr, "main.cpp: read_file(): bad read at %d\n",i );
       exit(1);
     }
-    std::cout << ds->instanceLabels[i] << i << '\n';
+    //std::cout << ds->instanceLabels[i] << i << '\n';
 
     for (int j = 0; j < ds->nFeatures; j++) {
       char* p = strtok(NULL, " \t");
@@ -35,26 +41,47 @@ void read_file(char* const filename, struct denseData* ds){
         fprintf(stderr, "Oh dear\n" );
         exit(1);
       }
-      ds->data[i][j] = strtod(p, &endptr);
+      temp[j] = strtod(p, &endptr);
+//      ds->data[i][j] = strtod(p, &endptr);
       //std::cout << "\t" << ds->data[i][j];
     }
-
     char* p = strtok(NULL, " \t");
+    if (atoi(p) == 1) {
+      for (int j = 0; j < ds->nFeatures; j++) {
+        ds->data[r][j] = temp[j];
+      }
+      r++;
+    }else if (atoi(p) == -1){
+      std::cout << "ds->nPos = " << ds->nPos << '\n';
+      std::cout << q << " is q " << '\n';
+
+      for (int j = 0; j < ds->nFeatures; j++) {
+        std::cout << temp[j] << '\n';
+        ds->data[ds->nPos+q][j] = temp[j];
+        std::cout << "this bit " << ds->data[ds->nPos+q][j] << '\n';
+      }
+      q++;
+
+    }
     ds->y[i] = strtod(p, &endptr);
     //std::cout << '\n';
   }
+
+  free(temp);
 }
 
 void count_entries(FILE *input, struct denseData* ds)
 {
   ds->nInstances = 0;
   ds->nFeatures = -1;
+  ds->nPos = 0;
+  ds->nNeg = 0;
   char* line = NULL;
 
 
   // Find size of dataset:
   while (readline(input, &line)) {
-    if (ds->nInstances==0) {
+    if (ds->nFeatures==-1) {
       char *p = strtok(line," \t");
       while (true) {
         p  = strtok(NULL, " \t");
@@ -63,9 +90,25 @@ void count_entries(FILE *input, struct denseData* ds)
         }
         ds->nFeatures++;
       }
+      rewind(input);
+      continue;
+    }
+    char* p = strtok(line," \t");
+    for (int i = 0; i < ds->nFeatures+1; i++) {
+      p = strtok(NULL, " \t");
+    }
+    int num = atoi(p);
+    if (num == 1) {
+      ds->nPos++;
+    }else if(num == -1){
+      ds->nNeg++;
+    }else{
+      std::cerr << "invalid classes (should be 1 or -1)" << '\n';
+      exit(1);
     }
     ds->nInstances++;
   }
+
   rewind(input);
 }
 

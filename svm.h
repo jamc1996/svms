@@ -14,6 +14,8 @@ struct svm_args
 struct denseData{
   int nInstances;
   int nFeatures;
+	int nPos;
+	int nNeg;
   double** data;
   double* data1d;
 	double* y;
@@ -33,7 +35,7 @@ struct Projected{
 
 	int p;
 	double C;
-	
+
 	double* h;
 
 
