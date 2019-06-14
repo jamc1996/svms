@@ -28,12 +28,26 @@ void init_prob(struct Fullproblem *prob, int n, int p, denseData *ds)
     prob->gradF[i] = 1.0;
   }
 
-  for (int i = 0; i < p; i++) {
+  for (int i = 0; i < p/2; i++) {
     prob->active[i] = i;
   }
-  for (int i = p; i < n; i++) {
-    prob->inactive[i-p] = i;
+
+  for (int i = 0; i < p/2; i++) {
+    prob->active[i+p/2] = ds->nPos + i;
   }
+
+  if (p%2 == 0) {
+    prob->active[p-1] = ds->nPos+p/2;
+  }
+  else{
+    for (int i = p/2; i < ds->nPos; i++) {
+      prob->inactive[i-(p/2)] = i;
+    }
+    for (int i = p/2; i < ds->nNeg; i++) {
+      prob->inactive[ds->nPos-(p)+i] = ds->nPos + i;
+    }
+  }
+
 }
 
 void setH(struct Fullproblem *prob, struct denseData *ds)
@@ -84,53 +98,48 @@ void updateAlphaR(struct Fullproblem *fp, struct Projected *sp)
 
 }
 
-int partialSwap(struct Fullproblem *fp, struct Projected *sp)
+int singleswap(struct denseData *ds, struct Fullproblem *fp, struct Projected *sp, int n)
 {
-  int badVals = 0;
-  for (int i = 0; i < sp->p; i++) {
-    if (fabs(sp->alphaHat[i]-sp->C) < 0.00001 || sp->alphaHat[i] < 0.000001) {
-      badVals++;
-    }
+  int worst = -1, index = -1;
+  int target, change=1;
+  double tester = 100.0;
+
+  if (n >= sp->p) {
+    change = -1;
+    n-=sp->p;
   }
-  int* pLocations = (int*)malloc(sizeof(int)*badVals);
-  int* qLocations = (int*)malloc(sizeof(int)*badVals);
-  double* betaVal = (double*)malloc(sizeof(double)*badVals);
-  int* qIndex = (int*)malloc(sizeof(int)*badVals);
-  int j = 0;
-  for (int i = 0; i < sp->p; i++) {
-    if (fabs(sp->alphaHat[i]-sp->C) < 0.00001 || sp->alphaHat[i] < 0.000001) {
-      pLocations[j] = i;
-      qLocations[i] = -1;
-      betaVal[i] = 100.0;
-    }
-  }
+  target = ds->y[fp->active[n]]*change;
+  std::cout << "n is " << n << '\n';
+  std::cout << "change is " << change << '\n';
+  std::cout << "target is " << target << '\n';
+
+  target = change*ds->y[fp->active[n]];
+
   for (int i = 0; i < fp->q; i++) {
-    for (int j = 0; j < badVals; j++) {
-      if (fp->beta[i]<betaVal[j]) {
-        for (int l = badVals - 1; l > j; l--) {
-          qLocations[l] = qLocations[l-1];
-          betaVal[l] = betaVal[l-1];
-        }
-        qLocations[j] = i;
-        betaVal[j] = fp->beta[i];
-        break;
+    if( ds->y[fp->inactive[i]] == target )  {
+      if (fp->beta[i]<tester) {
+        worst = i;
+        tester = fp->beta[i];
       }
     }
-  }
-  for (int i = 0; i < badVals; i++) {
-std::cout << "/* message */ " << qLocations[i] << '\n';
-}
 
-  for (int i = 0; i < badVals; i++) {
-    qIndex[i] = fp->inactive[qLocations[i]];
-    fp->inactive[qLocations[i]] = fp->active[pLocations[i]];
-    fp->active[pLocations[i]] = qIndex[i];
   }
+  std::cout << "worst = " << worst << '\n';
+  int temp = fp->active[n];
+  if (change < 0) {
+    fp->alpha[fp->inactive[worst]]+= sp->C - fp->alpha[fp->active[n]];
+    fp->alpha[fp->active[n]] = sp->C ;
+    fp->active[n] = fp->inactive[worst];
+    fp->inactive[worst] = temp;
 
-  free(qLocations);
-  free(pLocations);
-  free(qIndex);
-  free(betaVal);
+  }else{
+    fp->alpha[fp->inactive[worst]] += fp->alpha[fp->active[n]];
+    fp->alpha[fp->active[n]] = 0;
+    fp->active[n] = fp->inactive[worst];
+    fp->inactive[worst] = temp;
+  }
+  index = fp->inactive[worst];
+
 
   return 1;
 

@@ -4,7 +4,7 @@
 void alloc_subprob(struct Projected *sp, int p, struct Fullproblem *fp, struct denseData *ds)
 {
   sp->p = p;
-  sp->C = 10.0;
+  sp->C = 100.0;
 
   sp->alphaHat = (double*)malloc(sizeof(double)*p);
   sp->yHat = (double*)malloc(sizeof(double)*p);
@@ -64,6 +64,7 @@ int cg(struct Projected *sp)
   double rSq = inner_prod(sp->gamma,sp->gamma,sp->p);
 
   double newRSQ;
+  int problem = 0;
   int i=0;
   int flag = 1;
   while (rSq > 0.001) {
@@ -86,8 +87,18 @@ int cg(struct Projected *sp)
 
 
     lambda = rSq/inner_prod(sp->Hrho, sp->rho, sp->p);
-
+    std::cout << "alpah 3 is " << sp->alphaHat[3] << '\n';
     linearOp(sp->alphaHat, sp->rho, lambda, sp->p);
+    std::cout << "alpah 3 is " << sp->alphaHat[3] << '\n';
+
+    problem = checkConstraints(sp);
+    if(problem){
+      std::cout << "uh oh " << problem << '\n';
+      linearOp(sp->alphaHat, sp->rho, -lambda, sp->p);
+      std::cout << "alpah 3 is " << sp->alphaHat[3] << '\n';
+
+      return problem;
+    }
 
     updateGamma(sp, lambda);
 
@@ -99,22 +110,30 @@ int cg(struct Projected *sp)
     rSq = newRSQ;
     std::cout << "Here it is " << rSq << '\n';
     i++;
-    for (int j = 0; j < sp->p; j++) {
-      if (sp->alphaHat[j] > sp->C ) {
-        flag = 1;
-      }
-      if (sp->alphaHat[j] < 0.0) {
-        flag = 1;
-      }
-    }
-    if (flag == 1) {
-      return 1;
-    }
+
   }
 
   for (int i = 0; i < sp->p; i++) {
     std::cout << "gamma is " << sp->gamma[i] << '\n';
   }
+  return 0;
+}
+
+int checkConstraints(struct Projected* sp)
+{
+  double* temp = (double*)malloc(sizeof(double)*sp->p);
+  constraint_projection(temp, sp->alphaHat, sp->yHat, sp->p);
+  for (int i = 0; i < sp->p; i++) {
+    if(temp[i]>sp->C){
+      free(temp);
+      return i+sp->p;
+    }
+    else if(temp[i]<0.0){
+      free(temp);
+      return i;
+    }
+  }
+  free(temp);
   return 0;
 }
 

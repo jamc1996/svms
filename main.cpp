@@ -33,42 +33,51 @@ int main(int argc, char *argv[]) {
 
   // We loop until no negative entries in beta:
   int k = 1;
-  int max_iters = 10;
-  int i = 0;
+  int max_iters = 2;
+  int itt = 0;
   int n = 0;
-  while(k){
-    setH(&fullP, &ds);
 
+  while(k){
+
+    // H matrix columns fixed and subproblem changed
+    setH(&fullP, &ds);
     init_subprob(&subP, &fullP, &ds);
+
+    // Conjugate gradient algorithm with interrupt if
     n = cg(&subP);
+
+    // Computations for choosing next elements to analyze
     calcYTR(&subP);
     updateAlphaR(&fullP, &subP);
     calculateBeta(&fullP, &subP, &ds);
-
+std::cout << "n is " << n << '\n';
     if (n) {
-      k = partialSwap(&fullP,&subP);
+      // Case where interrupt needed:
+      k = singleswap(&ds, &fullP,&subP,n);
       for (int i = 0; i < subP.p; i++) {
         std::cout << "activia " << fullP.active[i] << '\n';
       }
     }
     else{
+      //  Without interrupt we swap in full
       k = swapMostNegative(&fullP);
+      for (int i = 0; i < subP.p; i++) {
+        std::cout << "muller " << fullP.active[i] << '\n';
+      }
     }
 
-    for (int i = 0; i < fullP.n; i++) {
-      //std::cout << "alpha  =   " << fullP.alpha[i] << '\n';
+    for (int k = 0; k < fullP.n; k++) {
+      std::cout << " alpha [ " << k << " ] =  " << fullP.alpha[k] << '\n';
     }
 
-    for (int i = 0; i < fullP.q; i++) {
-      //std::cout << "beta  =   " << fullP.beta[i] << '\n';
-    }
-
-    i++;
-    if(i == max_iters){
+    itt++;
+    if(itt == max_iters){
       break;
     }
   }
-
+  if (k==0) {
+    std::cout << "k goes to 0." << '\n';
+  }
   //Memory freed
   freeDenseData(&ds);
   freeFullProblem(&fullP);
@@ -78,6 +87,7 @@ int main(int argc, char *argv[]) {
 }
 
 void   freeSubProblem( struct Projected* subP)
+/* Function to free dynamically allocated memory in subproblem stuct. */
 {
   free(subP->alphaHat);
   free(subP->yHat);
@@ -92,6 +102,7 @@ void   freeSubProblem( struct Projected* subP)
 }
 
 void freeDenseData(struct denseData *ds)
+/* Function to free dynamically allocated memory in dense data set struct. */
 {
   free(ds->data);
   free(ds->data1d);
@@ -101,6 +112,7 @@ void freeDenseData(struct denseData *ds)
 }
 
 void  freeFullProblem(struct Fullproblem *fp)
+/* Function to free dynamically allocated memory in fullproblem struct */
 {
   free(fp->alpha);
   free(fp->beta);

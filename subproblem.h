@@ -11,7 +11,7 @@ void init_subprob(struct Projected *sp, struct Fullproblem *fp, struct denseData
 void init_symmetric(struct Projected *sp, int p);
 
 int cg(struct Projected *sp);
-
+int checkConstraints(struct Projected* sp);
 void init_error(struct Projected* sp);
 void calc_Hrho(struct Projected *sp);
 void linearOp2(double* rho, double* gama, double mu, int p);

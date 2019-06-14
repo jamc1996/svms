@@ -52,13 +52,8 @@ void read_file(char* const filename, struct denseData* ds){
       }
       r++;
     }else if (atoi(p) == -1){
-      std::cout << "ds->nPos = " << ds->nPos << '\n';
-      std::cout << q << " is q " << '\n';
-
       for (int j = 0; j < ds->nFeatures; j++) {
-        std::cout << temp[j] << '\n';
         ds->data[ds->nPos+q][j] = temp[j];
-        std::cout << "this bit " << ds->data[ds->nPos+q][j] << '\n';
       }
       q++;
 

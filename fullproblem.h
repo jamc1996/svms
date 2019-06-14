@@ -11,6 +11,6 @@ void updateAlphaR(struct Fullproblem *fp, struct Projected *sp);
 void calculateBeta(struct Fullproblem *fp, struct Projected *sp, struct denseData *ds);
 int swapMostNegative(struct Fullproblem *fp);
 void setH(struct Fullproblem *prob, struct denseData *ds);
-int partialSwap(struct Fullproblem *fp, struct Projected *sp);
+int singleswap(struct denseData *ds, struct Fullproblem *fp, struct Projected *sp, int n);
 
 #endif
