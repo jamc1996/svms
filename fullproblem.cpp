@@ -36,8 +36,10 @@ void init_prob(struct Fullproblem *prob, int n, int p, denseData *ds)
     prob->active[i+p/2] = ds->nPos + i;
   }
 
-  if (p%2 == 0) {
+  if (p%2 != 0) {
     prob->active[p-1] = ds->nPos+p/2;
+    std::cout << "fullproblem.cpp: init_prob(): Not yet working" << '\n';
+    exit(1);
   }
   else{
     for (int i = p/2; i < ds->nPos; i++) {
@@ -78,6 +80,7 @@ void updateAlphaR(struct Fullproblem *fp, struct Projected *sp)
 
   for (int i = 0; i < sp->p; i++) {
     std::cout << "pal = " << sp->rho[i] << '\n';
+    std::cout << "fp acti s " << fp->active[i] << '\n';
   }
 
   for (int i = 0; i < sp->p; i++) {
@@ -85,14 +88,19 @@ void updateAlphaR(struct Fullproblem *fp, struct Projected *sp)
   }
 
   for (int i = 0; i < fp-> q; i++) {
+    std::cout << fp->inactive[i] << '\n';
     for (int j = 0; j < sp->p; j++) {
       fp->gradF[fp->inactive[i]] -= fp->partialH[i][j] * sp->rho[j];
     }
   }
 
   for (int i = 0; i < fp->p; i++) {
-    for (int j = 0; j < fp->p; j++) {
-      fp->gradF[fp->active[i]] = sp->gamma[i];
+
+    for (int j = 0; j < i; j++) {
+      fp->gradF[fp->active[i]] -= sp->H[j][i]*sp->rho[j];
+    }
+    for (int j = i; j < fp->p; j++) {
+      fp->gradF[fp->active[i]] -= sp->H[i][j]*sp->rho[j];
     }
   }
 
@@ -100,7 +108,7 @@ void updateAlphaR(struct Fullproblem *fp, struct Projected *sp)
 
 int singleswap(struct denseData *ds, struct Fullproblem *fp, struct Projected *sp, int n)
 {
-  int worst = -1, index = -1;
+  int worst = -1;
   int target, change=1;
   double tester = 100.0;
 
@@ -122,42 +130,77 @@ int singleswap(struct denseData *ds, struct Fullproblem *fp, struct Projected *s
         tester = fp->beta[i];
       }
     }
-
   }
+
   std::cout << "worst = " << worst << '\n';
   int temp = fp->active[n];
-  if (change < 0) {
+
+
+  if (change < 0)
+  {
+    adjustGradF(fp, ds, n, worst, change);
     fp->alpha[fp->inactive[worst]]+= sp->C - fp->alpha[fp->active[n]];
     fp->alpha[fp->active[n]] = sp->C ;
     fp->active[n] = fp->inactive[worst];
     fp->inactive[worst] = temp;
-
-  }else{
+  }
+  else
+  {
     fp->alpha[fp->inactive[worst]] += fp->alpha[fp->active[n]];
     fp->alpha[fp->active[n]] = 0;
     fp->active[n] = fp->inactive[worst];
     fp->inactive[worst] = temp;
   }
-  index = fp->inactive[worst];
 
 
   return 1;
 
 }
 
+void adjustGradF(struct Fullproblem *fp, struct denseData *ds, int n, int worst, int signal)
+{
+  if (signal == -1) {
+    for (int i = 0; i < fp->q; i++) {
+      fp->gradF[fp->inactive[i]] += fp->partialH[i][n]*fp->alpha[n] ;
+    }
+  }
+  else
+  {
+    for (int i = 0; i < fp->q; i++) {
+      fp->gradF[fp->inactive[i]] -= fp->partialH[i][n]*fp->alpha[n] ;
+    }
+  }
+  double* temp = (double*) malloc(sizeof(double)*fp->q);
+  for (int j = 0; j < fp->q; j++) {
+    temp[j] = 0.0;
+    for (int k = 0; k < ds->nFeatures; k++) {
+      temp[j]+=ds->data[fp->inactive[worst]][k]*ds->data[fp->inactive[j]][k];
+    }
+    temp[j]*=ds->y[fp->inactive[worst]]*ds->y[fp->inactive[j]];
+  }
+  free(temp);
+}
+
 int swapMostNegative(struct Fullproblem *fp)
+/*  If the cg has fully converged we swap all p values out for a new set
+ *  based on how negative their beta value is.    */
 {
   int* location = (int*)malloc(sizeof(int)*fp->p);
   int* index = (int*)malloc(sizeof(int)*fp->p);
   double* betaVal = (double*)malloc(sizeof(double)*fp->p);
-  for (int i = 0; i < fp->p; i++) {
+  for (int i = 0; i < fp->p; i++)
+  {
     location[i] = -1;
     betaVal[i] = 100.0;
   }
-  for (int i = 0; i < fp->q; i++) {
-    for (int j = 0; j < fp->p; j++) {
-      if (fp->beta[i]<betaVal[j]) {
-        for (int k = (fp->p) - 1; k > j ; k--) {
+  for (int i = 0; i < fp->q; i++)
+  {
+    for (int j = 0; j < fp->p; j++)
+    {
+      if (fp->beta[i]<betaVal[j])
+      {
+        for (int k = (fp->p) - 1; k > j ; k--)
+        {
           location[k] = location[k-1];
           betaVal[k] = betaVal[k-1];
         }
@@ -167,14 +210,16 @@ int swapMostNegative(struct Fullproblem *fp)
       }
     }
   }
-  if (betaVal[0]>=0.0) {
+  if (betaVal[0]>=0.0)
+  {
     free(location);
     free(index);
     free(betaVal);
     return 0;
   }
 
-  for (int i = 0; i < fp->p; i++) {
+  for (int i = 0; i < fp->p; i++)
+  {
     index[i] = fp->inactive[location[i]];
     fp->inactive[location[i]] = fp->active[i];
     fp->active[i] = index[i];
@@ -190,8 +235,9 @@ int swapMostNegative(struct Fullproblem *fp)
 
 
 void calculateBeta(struct Fullproblem *fp, struct Projected *sp, struct denseData *ds)
+/* Function to calculate the beta vector - tracks how suboptimal the values for*/
 {
   for (int i = 0; i < fp->q; i++) {
-    fp->beta[i] = fp->gradF[fp->inactive[i]] - sp->ytr*ds->y[fp->inactive[i]];
+    fp->beta[i] = fp->gradF[fp->inactive[i]] - (sp->ytr*ds->y[fp->inactive[i]]/(double)(fp->p));
   }
 }

@@ -47,18 +47,23 @@ void read_file(char* const filename, struct denseData* ds){
     }
     char* p = strtok(NULL, " \t");
     if (atoi(p) == 1) {
+      std::cout << r << '\n';
       for (int j = 0; j < ds->nFeatures; j++) {
         ds->data[r][j] = temp[j];
       }
+      ds->y[r] = 1;
+
       r++;
     }else if (atoi(p) == -1){
+      std::cout << q << '\n';
       for (int j = 0; j < ds->nFeatures; j++) {
         ds->data[ds->nPos+q][j] = temp[j];
       }
+      ds->y[ds->nPos+q] = -1;
+
       q++;
 
     }
-    ds->y[i] = strtod(p, &endptr);
     //std::cout << '\n';
   }
 
@@ -141,8 +146,9 @@ int parse_arguments(int argc, char *argv[], char** filename, struct svm_args *pa
   parameters->degree = 1;
   parameters->verbose = false;
   parameters->C = 1;
+  parameters->test = false;
 
-  while ((c = getopt( argc, argv, "f:t:c:d:vh")) != -1){
+  while ((c = getopt( argc, argv, "f:kt:c:d:vh")) != -1){
     switch (c) {
       case 'f':
         *filename = optarg;
@@ -152,6 +158,9 @@ int parse_arguments(int argc, char *argv[], char** filename, struct svm_args *pa
         break;
       case 'c':
         parameters->C = atoi(optarg);
+        break;
+      case 'k':
+        parameters->test = true;
         break;
       case 'd':
         parameters->degree = atoi(optarg);

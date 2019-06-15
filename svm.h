@@ -8,6 +8,7 @@ struct svm_args
 	int degree;
 	double C;	/* for C_SVC, EPSILON_SVR and NU_SVR */
 	bool verbose;
+	bool test;
 };
 
 

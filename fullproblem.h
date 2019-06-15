@@ -12,5 +12,6 @@ void calculateBeta(struct Fullproblem *fp, struct Projected *sp, struct denseDat
 int swapMostNegative(struct Fullproblem *fp);
 void setH(struct Fullproblem *prob, struct denseData *ds);
 int singleswap(struct denseData *ds, struct Fullproblem *fp, struct Projected *sp, int n);
+void adjustGradF(struct Fullproblem *fp, struct denseData *ds, int n, int worst, int signal);
 
 #endif

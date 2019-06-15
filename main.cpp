@@ -6,15 +6,15 @@
 #include <iostream>
 
 void freeDenseData(struct denseData *ds);
-void  freeFullProblem(struct Fullproblem *fp);
-void   freeSubProblem( struct Projected* subP);
+void  freeFullproblem(struct Fullproblem *fp);
+void   freeSubProblem( struct Projected* sp);
 
 int main(int argc, char *argv[]) {
   char* filename = NULL;
   struct svm_args parameters;
   struct denseData ds;
-  struct Fullproblem fullP;
-  struct Projected subP;
+  struct Fullproblem fp;
+  struct Projected sp;
 
   // Input processed:
   parse_arguments(argc, argv, &filename, &parameters);
@@ -24,50 +24,97 @@ int main(int argc, char *argv[]) {
   // Projected problem size chosen temporarily
   int p = 8;
 
+
+  if (parameters.test) {
+    alloc_prob(&fp, ds.nInstances, p);
+    init_prob(&fp, ds.nInstances, p, &ds);
+    setH(&fp, &ds);
+    for (int i = 0; i < fp.q; i++) {
+      for (int j = 0; j < fp.p; j++) {
+        //std::cout << fp.partialH[i][j] << '\t';
+      }
+      //std::cout << '\n';
+    }
+    for (int i = 0; i < fp.p; i++) {
+    //  std::cout << fp.active[i] << '\n';
+    }
+    alloc_subprob(&sp, p, &fp, &ds);
+    init_subprob(&sp, &fp, &ds);
+    for (int i = 0; i < sp.p; i++) {
+      //std::cout << "inactive " << fp.active[i] << '\n';
+      //std::cout << "yaha   " << sp.yHat[i] << '\n';
+      //std::cout << "alpha h  "<< sp.alphaHat[i] << '\n';
+      //std::cout << "rHAT  "<< sp.rHat[i] << '\n';
+    }
+    for (int i = 0; i < sp.p; i++) {
+      for (int j = i; j < sp.p; j++) {
+        std::cout << sp.H[i][j] << '\t';
+      }
+      std::cout << '\n';
+    }
+
+    sp.alphaHat[2] = 0.5;
+    sp.alphaHat[6] = 0.5;
+    sp.alphaHat[7] = 4.0;
+    sp.alphaHat[1] = 3.7;
+    sp.alphaHat[0] = 0.3;
+    calcYTR(&sp);
+    updateAlphaR(&fp, &sp);
+    calculateBeta(&fp, &sp, &ds);
+
+    int k = singleswap(&ds, &fp,&sp,2);
+
+    for (int i = 0; i < fp.p; i++) {
+      std::cout << " active of " << i << " is "<< fp.active[i] << '\n';
+      std::cout << " alpha of " << i << " is "<< fp.alpha[fp.active[i]] << '\n';
+    }
+    return 0;
+
+
+  }
+
+
+
   // Full problem allocated and filled in:
-  alloc_prob(&fullP, ds.nInstances, p);
-  init_prob(&fullP, ds.nInstances, p, &ds);
+  alloc_prob(&fp, ds.nInstances, p);
+  init_prob(&fp, ds.nInstances, p, &ds);
 
   // Subproblem allocated:
-  alloc_subprob(&subP, p, &fullP, &ds);
+  alloc_subprob(&sp, p, &fp, &ds);
 
   // We loop until no negative entries in beta:
   int k = 1;
-  int max_iters = 2;
+  int max_iters = 500;
   int itt = 0;
   int n = 0;
 
   while(k){
 
     // H matrix columns fixed and subproblem changed
-    setH(&fullP, &ds);
-    init_subprob(&subP, &fullP, &ds);
+    setH(&fp, &ds);
+    init_subprob(&sp, &fp, &ds);
 
     // Conjugate gradient algorithm with interrupt if
-    n = cg(&subP);
+    n = cg(&sp);
 
     // Computations for choosing next elements to analyze
-    calcYTR(&subP);
-    updateAlphaR(&fullP, &subP);
-    calculateBeta(&fullP, &subP, &ds);
+    calcYTR(&sp);
+    updateAlphaR(&fp, &sp);
+    calculateBeta(&fp, &sp, &ds);
 std::cout << "n is " << n << '\n';
     if (n) {
       // Case where interrupt needed:
-      k = singleswap(&ds, &fullP,&subP,n);
-      for (int i = 0; i < subP.p; i++) {
-        std::cout << "activia " << fullP.active[i] << '\n';
+      k = singleswap(&ds, &fp,&sp,n);
+      for (int i = 0; i < sp.p; i++) {
+        std::cout << "activia " << fp.active[i] << '\n';
       }
     }
     else{
       //  Without interrupt we swap in full
-      k = swapMostNegative(&fullP);
-      for (int i = 0; i < subP.p; i++) {
-        std::cout << "muller " << fullP.active[i] << '\n';
+      k = swapMostNegative(&fp);
+      for (int i = 0; i < sp.p; i++) {
+        std::cout << "muller " << fp.active[i] << '\n';
       }
-    }
-
-    for (int k = 0; k < fullP.n; k++) {
-      std::cout << " alpha [ " << k << " ] =  " << fullP.alpha[k] << '\n';
     }
 
     itt++;
@@ -78,27 +125,33 @@ std::cout << "n is " << n << '\n';
   if (k==0) {
     std::cout << "k goes to 0." << '\n';
   }
+
+
+  for (int k = 0; k < fp.n; k++) {
+    std::cout << " alpha [ " << k << " ] =  " << fp.alpha[k] << '\n';
+  }
+
   //Memory freed
   freeDenseData(&ds);
-  freeFullProblem(&fullP);
-  freeSubProblem(&subP);
+  freeFullproblem(&fp);
+  freeSubProblem(&sp);
 
   return 0;
 }
 
-void   freeSubProblem( struct Projected* subP)
+void   freeSubProblem( struct Projected* sp)
 /* Function to free dynamically allocated memory in subproblem stuct. */
 {
-  free(subP->alphaHat);
-  free(subP->yHat);
-  free(subP->rHat);
-  free(subP->H);
+  free(sp->alphaHat);
+  free(sp->yHat);
+  free(sp->rHat);
+  free(sp->H);
 
-  free(subP->gamma);
-  free(subP->rho);
-  free(subP->Hrho);
+  free(sp->gamma);
+  free(sp->rho);
+  free(sp->Hrho);
 
-  free(subP->h);
+  free(sp->h);
 }
 
 void freeDenseData(struct denseData *ds)
@@ -111,8 +164,8 @@ void freeDenseData(struct denseData *ds)
   free(ds->featureLabels);
 }
 
-void  freeFullProblem(struct Fullproblem *fp)
-/* Function to free dynamically allocated memory in fullproblem struct */
+void  freeFullproblem(struct Fullproblem *fp)
+/* Function to free dynamically allocated memory in Fullproblem struct */
 {
   free(fp->alpha);
   free(fp->beta);
