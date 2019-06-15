@@ -38,6 +38,12 @@ void init_prob(struct Fullproblem *prob, int n, int p, denseData *ds)
 
   if (p%2 != 0) {
     prob->active[p-1] = ds->nPos+p/2;
+    for (int i = p/2; i < ds->nPos; i++) {
+      prob->inactive[i-(p/2)] = i;
+    }
+    for (int i = 1+(p/2); i < ds->nNeg; i++) {
+      prob->inactive[ds->nPos-(p)+i] = ds->nPos + i;
+    }
     std::cout << "fullproblem.cpp: init_prob(): Not yet working" << '\n';
     exit(1);
   }
@@ -88,7 +94,7 @@ void updateAlphaR(struct Fullproblem *fp, struct Projected *sp)
   }
 
   for (int i = 0; i < fp-> q; i++) {
-    std::cout << fp->inactive[i] << '\n';
+    std::cout << "inactive is" << fp->inactive[i] << '\n';
     for (int j = 0; j < sp->p; j++) {
       fp->gradF[fp->inactive[i]] -= fp->partialH[i][j] * sp->rho[j];
     }

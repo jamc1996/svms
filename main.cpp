@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
   preprocess(&ds);
 
   // Projected problem size chosen temporarily
-  int p = 8;
+  int p = 4;
 
 
   if (parameters.test) {
@@ -31,20 +31,20 @@ int main(int argc, char *argv[]) {
     setH(&fp, &ds);
     for (int i = 0; i < fp.q; i++) {
       for (int j = 0; j < fp.p; j++) {
-        //std::cout << fp.partialH[i][j] << '\t';
+        std::cout << fp.partialH[i][j] << '\t';
       }
-      //std::cout << '\n';
+      std::cout << '\n';
     }
     for (int i = 0; i < fp.p; i++) {
-    //  std::cout << fp.active[i] << '\n';
+      std::cout << fp.active[i] << '\n';
     }
     alloc_subprob(&sp, p, &fp, &ds);
     init_subprob(&sp, &fp, &ds);
     for (int i = 0; i < sp.p; i++) {
-      //std::cout << "inactive " << fp.active[i] << '\n';
-      //std::cout << "yaha   " << sp.yHat[i] << '\n';
-      //std::cout << "alpha h  "<< sp.alphaHat[i] << '\n';
-      //std::cout << "rHAT  "<< sp.rHat[i] << '\n';
+      std::cout << "inactive " << fp.active[i] << '\n';
+      std::cout << "yaha   " << sp.yHat[i] << '\n';
+      std::cout << "alpha h  "<< sp.alphaHat[i] << '\n';
+      std::cout << "rHAT  "<< sp.rHat[i] << '\n';
     }
     for (int i = 0; i < sp.p; i++) {
       for (int j = i; j < sp.p; j++) {
@@ -53,10 +53,9 @@ int main(int argc, char *argv[]) {
       std::cout << '\n';
     }
 
-    sp.alphaHat[2] = 0.5;
-    sp.alphaHat[6] = 0.5;
-    sp.alphaHat[7] = 4.0;
-    sp.alphaHat[1] = 3.7;
+    sp.alphaHat[1] = 0.5;
+    sp.alphaHat[3] = 0.5;
+    sp.alphaHat[2] = 4.0;
     sp.alphaHat[0] = 0.3;
     calcYTR(&sp);
     updateAlphaR(&fp, &sp);
@@ -129,13 +128,16 @@ std::cout << "n is " << n << '\n';
 
   for (int k = 0; k < fp.n; k++) {
     std::cout << " alpha [ " << k << " ] =  " << fp.alpha[k] << '\n';
+    if (fp.alpha[k]<0.0) {
+      return -3;
+    }
   }
 
   //Memory freed
   freeDenseData(&ds);
   freeFullproblem(&fp);
   freeSubProblem(&sp);
-
+  std::cout << itt << '\n';
   return 0;
 }
 

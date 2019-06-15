@@ -84,7 +84,7 @@ int cg(struct Projected *sp)
     for (int i = 0; i < sp->p; i++) {
   //    std::cout << "Gamma is " << sp->gamma[i] << '\n';
     }
-
+std::cout << i << '\n';
 
     lambda = rSq/inner_prod(sp->Hrho, sp->rho, sp->p);
     std::cout << "alpah 3 is " << sp->alphaHat[3] << '\n';
